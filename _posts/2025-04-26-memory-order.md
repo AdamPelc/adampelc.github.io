@@ -15,11 +15,11 @@ Before C++11 the language had no formal memory model; programmers were limited t
 
 In that model, **happens-before** is the fundamental ordering relation. An evaluation `A` **happens-before** evaluation `B` if
 
-1. A is sequenced-before B in the same thread,
-2. A synchronises-with B through an atomic operation or fence, or
+1. `A` is sequenced-before `B` in the same thread,
+2. `A` synchronises-with `B` through an atomic operation or fence, or
 3. there exists a transitive chain of evaluations that satisfy (1) or (2).
 
-The implementation must guarantee that every thread perceives memory effects in an order consistent with this global happens-before relation, which is required to be acyclic. Any conflicting accesses that are not ordered by happens-before form a data race, and the behaviour of the entire program becomes undefined.
+The implementation must guarantee that every thread perceives memory effects in an order consistent with this global happens-before relation, which is required to be acyclic. Any conflicting accesses that are not ordered by **happens-before** form a data race, and the behaviour of the entire program becomes undefined.
 
 ## The six memory-order constants
 
@@ -32,14 +32,14 @@ enum class std::memory_order { relaxed, consume, acquire,
 
 Each enumerator also has an inline constexpr alias such as `std::memory_order_relaxed`; both spellings are standard and equivalent.
 
-| Constant  | What it guarantees                                                                                                                | Typical use-case                                                                                                                     |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `relaxed` | Atomicity only; no inter-thread ordering or synchronisation.                                                                      | Statistics counters, reference counts, ID generators where the exact order of increments is irrelevant.                              |
-| `consume` | Orders subsequent operations that are data-dependent on the loaded value; all major compilers currently promote it to `acquire`.  | Extremely rare in portable code; avoid until compilers implement true consume semantics.                                             |
-| `acquire` | Prevents later reads/writes from being reordered before the operation (one-way barrier).                                          | Thread that loads a flag and then reads the published data.                                                                          |
-| `release` | Prevents earlier reads/writes from being reordered after the operation (mirror one-way barrier).                                  | Thread that writes data and then stores a flag, or the unlock side of a mutex.                                                       |
-| `acq_rel` | A single RMW acts as both acquire and release; on a plain load it is ill-formed, and on a plain store it degrades to release.     | fetch_add, compare_exchange, ticket spin-locks, any RMW that must publish its own update and forbid later code from moving above it. |
-| `seq_cst` | Behaves as acquire on loads and release on stores and all seq_cst operations across all threads appear in one global total order. | Default; easiest to reason about, but may block hardware optimisations on some weak architectures.                                   |
+| Constant  | What it guarantees                                                                                                                      | Typical use-case                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `relaxed` | Atomicity only; no inter-thread ordering or synchronisation.                                                                            | Statistics counters, reference counts, ID generators where the exact order of increments is irrelevant.                              |
+| `consume` | Orders subsequent operations that are data-dependent on the loaded value; all major compilers currently promote it to `acquire`.        | Extremely rare in portable code; avoid until compilers implement true consume semantics.                                             |
+| `acquire` | Prevents later reads/writes from being reordered before the operation (one-way barrier).                                                | Thread that loads a flag and then reads the published data.                                                                          |
+| `release` | Prevents earlier reads/writes from being reordered after the operation (mirror one-way barrier).                                        | Thread that writes data and then stores a flag, or the unlock side of a mutex.                                                       |
+| `acq_rel` | A single RMW acts as both `acquire` and `release`; on a plain load it is ill-formed, and on a plain store it degrades to `release`.     | fetch_add, compare_exchange, ticket spin-locks, any RMW that must publish its own update and forbid later code from moving above it. |
+| `seq_cst` | Behaves as `acquire` on loads and `release` on stores and all `seq_cst` operations across all threads appear in one global total order. | Default; easiest to reason about, but may block hardware optimisations on some weak architectures.                                   |
 
 Understanding and choosing the weakest order that still preserves correctness is the key to high-performance lock-free code. In the next sections we’ll walk through concrete code snippets to see how each order affects real executions.
 
@@ -49,15 +49,15 @@ Understanding and choosing the weakest order that still preserves correctness is
 
 **Per-thread ordering:**
 
-A seq-cst load acts as an acquire, a seq-cst store acts as a release, and a seq-cst RMW acts as acq_rel. In other words, you get the same one-way fences as acquire/release, not a magical full barrier.
+A `seq-cst` load acts as an `acquire`, a `seq-cst` store acts as a `release`, and a `seq-cst` RMW acts as `acq_rel`. In other words, you get the same one-way fences as `acquire`/`release`.
 
 **Visibility:**
 
-Te acquire/release effects ensure that every write sequenced-before a seq-cst store is visible after a seq-cst load that reads the stored value.
+The `acquire`/`release` effects ensure that every write sequenced-before a `seq-cst` store is visible after a `seq-cst` load that reads the stored value.
 
 **Single global order:**
 
-All seq-cst operations, across all threads and variables, appear in one total order that every thread agrees on. That extra guarantee makes reasoning easier but can cost performance on weakly-ordered CPUs.
+All `seq-cst` operations, across all threads and variables, appear in one total order that every thread agrees on. That extra guarantee makes reasoning easier but can cost performance on weakly-ordered CPUs.
 
 ### Ordering and visibility example
 
@@ -85,21 +85,21 @@ void thread_2()
 
 Re-ordering rules:
 
-* A may not move after B (release fence), and B itself may not move before A.
-* F may not move before E (acquire fence).
-* C can move before B, and D can move after E—seq-cst does not forbid those moves because the fences are one-way.
+* `A` may not move after `B` (release fence), and `B` itself may not move before `A`.
+* `F` may not move before `E` (acquire fence).
+* `C` can move before `B`, and `D` can move after `E` — `seq-cst` does not forbid those moves because the fences are one-way.
 
 **Visibility:**
 
-If the acquire load E observes true, then rx must read the value stored by A (1).
+If the acquire load `E` observes true, then `rx` must read the value stored by `A` (1).
 
-**Intentional data race ⚠**
+**Intentional data race ⚠:**
 
 Because `y` is not atomic, a re-order where `C` slides in front of `B` and overlaps with `D` creates a bona-fide data race → undefined behaviour. The race is deliberate here to illustrate that ordering guarantees alone do not make non-atomic shared data safe.
 
 ### Single global order example
 
-This is one additional constrain, ensures that seq_cst atomic operations will be executed "one-by-one". `A -> B -> C -> D`, where each letter is atomic operation and `A -> B` means that `A` happens before `B`.
+This is one additional constraint, ensures that `seq_cst` atomic operations will be executed "one-by-one". `A -> B -> C -> D`, where each letter is atomic operation and `A -> B` means that `A` happens before `B`.
 
 ```c++
 std::atomic<int> x(0);
@@ -130,25 +130,25 @@ At least one of the two stores (`A` or `C`) must become visible before its match
 
 **Possible outcomes:**
 
-| First store visible              | Order prefix in the total order  | (ry, rx) after boh threads finish |
-| -------------------------------- | -------------------------------- | --------------------------------- |
-| `x = 1` (A)                      | A -> B -> ...                    | (0, 1)                            |
-| `y = 1` (C)                      | C -> D -> ...                    | (1, 0)                            |
-| Both stores visible before loads | A -> C -> ... *or* C -> A -> ... | (1, 1)                            |
+| First store visible              | Order prefix in the total order    | (ry, rx) after both threads finish |
+| -------------------------------- | ---------------------------------- | ---------------------------------- |
+| `x = 1` (A)                      | `A -> B -> ...`                    | (0, 1)                             |
+| `y = 1` (C)                      | `C -> D -> ...`                    | (1, 0)                             |
+| Both stores visible before loads | `A -> C -> ...` or `C -> A -> ...` | (1, 1)                             |
 
 Any architecture or compiler that claims conformance must rule out the forbidden (0, 0) outcome; weaker orders such as `acq_rel` do allow it.
 
 ## What is `acq_rel` memory order?
 
-Acquire-release (std::memory_order::acq_rel) gives the same guarantees as seq_cst, without Single global order. It's used in RMW (Read-Modify-Write) operations where it must be ensured that two-way barrier (full-barrier) is required.
+Acquire-release (`std::memory_order::acq_rel`) gives the same guarantees as `seq_cst`, without single global order. It's used in RMW (Read-Modify-Write) operations where it must be ensured that two-way barrier (full-barrier) is required.
 
-std::memory_order_acq_rel is meant only for read-modify-write (RMW) operations (e.g. fetch_add, compare_exchange, fetch_or).
+`std::memory_order_acq_rel` is meant only for read-modify-write (RMW) operations (e.g. `fetch_add`, `compare_exchange`, `fetch_or`).
 On such an operation it acts as
 
-* release with respect to every read and write that precedes the RMW, and
-* acquire with respect to every read and write that follows it.
+* `release` with respect to every read and write that precedes the RMW, and
+* `acquire` with respect to every read and write that follows it.
 
-Unlike seq_cst, it does not place the operation in the single global total order, so you lose that last bit of cross-thread coordination—often a worthwhile trade-off for speed.
+Unlike `seq_cst`, it does not place the operation in the single global total order, so you lose that last bit of cross-thread coordination—often a worthwhile trade-off for speed.
 
 ### Common usage: ticket spin-lock
 
@@ -168,13 +168,13 @@ public:
 };
 ```
 
-* A must be acq_rel: as a store it publishes the new ticket to other threads (release); as a load it prevents later critical-section reads from moving up (acquire).
-* B needs only acquire; it does not publish anything.
-* C needs only release; no subsequent reads depend on it.
+* `A` must be `acq_rel`: as a store it publishes the new ticket to other threads (release); as a load it prevents later critical-section reads from moving up (acquire).
+* `B` needs only `acquire`; it does not publish anything.
+* `C` needs only `release`; no subsequent reads depend on it.
 
-### Lack of sigle global order
+### Lack of single global order
 
-Replace the seq_cst operations from the previous litmus test with true RMWs that use acq_rel:
+Replace the `seq_cst` operations from the previous litmus test with true RMWs that use `acq_rel`:
 
 ```c++
 std::atomic<int> x(0);
@@ -229,10 +229,10 @@ Outcome `rx == 0 && ry == 0` was impossible under `seq_cst`, but is allowed with
 
 ## What is acquire memory ordering?
 
-A load performed with std::memory_order_acquire provides two key guarantees:
+A load performed with `std::memory_order::acquire` provides two key guarantees:
 
 * Ordering – no later read or write in the same thread may move before the load (one-way barrier).
-* Visibility – if the loaded value was stored by a memory_order_release (or stronger) store, then every write sequenced-before that store becomes visible after the load.
+* Visibility – if the loaded value was stored by a `std::memory_order::release` (or stronger) store, then every write sequenced-before that store becomes visible after the load.
 
 ### Relative-ordering guarantee (one-way barrier)
 
@@ -259,9 +259,9 @@ void thread_2()
 ```
 
 * The release/acquire pair (B ↔ E) forms a synchronises-with edge.
-* D may move past E (it is before the barrier), but F cannot move before E.
-* Because A is sequenced-before B, and B synchronises-with E, A happens-before F – therefore rx is guaranteed to read 1.
-* The write D to y happens-before the read C via the chain D → E (acquire) → B (release) → C, so no data race exists even though y is non-atomic.
+* `D` may move past `E` (it is before the barrier), but `F` cannot move before `E`.
+* Because `A` is sequenced-before `B`, and `B` synchronises-with `E`, `A` happens-before `F` – therefore rx is guaranteed to read 1.
+* The write `D` to y happens-before the read `C` via the chain `D` → `E` (acquire) → `B` (release) → `C`, so no data race exists even though y is non-atomic.
 
 **Time t~0~:**
 
@@ -299,11 +299,11 @@ Reads of value x can not be reordered before E, acquire fence guarantees this.
 
 ## What is release memory ordering?
 
-std::memory_order::release is the store-side mirror of acquire.
+`std::memory_order::release` is the store-side mirror of `acquire`.
 
 * Ordering – no read or write that appears before the store in program
 order may be moved after it (one-way barrier).
-* Visibility – together with a matching memory_order_acquire load that
+* Visibility – together with a matching `std::memory_order::acquire` load that
 reads the same value, it creates an inter-thread happens-before edge that
 makes all earlier writes visible.
 
@@ -331,9 +331,9 @@ void thread_2()
 }
 ```
 
-* C may move in front of B, but A may not move after B.
-* Because A is sequenced-before B, and B synchronises-with the acquire load E, A happens-before F ⇒ rx == 1.
-* D can overlap C → true data race on y (shown intentionally).
+* `C` may move in front of `B`, but `A` may not move after `B`.
+* Because `A` is sequenced-before `B`, and `B` synchronises-with the acquire load `E`, `A` happens-before `F` ⇒ rx == 1.
+* `D` can overlap `C` → true data race on y (shown intentionally).
 
 |  Time  | Current Thread | Operation ID |                                    Comment                                    |
 | :----: | :------------: | :----------: | :---------------------------------------------------------------------------: |
@@ -351,19 +351,19 @@ Release is therefore ideal for “publish a result / set a flag” and for the u
 
 A release store does not instantly publish data; it merely promises that if another thread later performs an acquire load that observes the stored value, all earlier writes are already visible.
 
-|  Time  | Current Thread | Operation ID |                                    Comment                                    |     |
-| :----: | :------------: | :----------: | :---------------------------------------------------------------------------: | --- |
-|   t0   |       1        |      A       |                   x = 1 (may still sit in the store buffer)                   |     |
-| t0 + 1 |       1        |      B       |                             flag = true (release)                             |     |
-| t0 + 2 |       —        |      —       |              Store buffer drains; x and flag reach shared cache.              |     |
-| t0 + 3 |       2        |      E       | loads true (acquire) ⇒ all earlier writes by T1, including x, are now visible |     |
-| t0 + 4 |       2        |      F       |                               reads x must be 1                               |     |
+|  Time  | Current Thread | Operation ID |                                    Comment                                    |
+| :----: | :------------: | :----------: | :---------------------------------------------------------------------------: |
+|   t0   |       1        |      A       |                   x = 1 (may still sit in the store buffer)                   |
+| t0 + 1 |       1        |      B       |                             flag = true (release)                             |
+| t0 + 2 |       —        |      —       |              Store buffer drains; x and flag reach shared cache.              |
+| t0 + 3 |       2        |      E       | loads true (acquire) ⇒ all earlier writes by T1, including x, are now visible |
+| t0 + 4 |       2        |      F       |                               reads x must be 1                               |
 
 ### Using release and acquire pair
 
-Combination release and acquire is always used as pair, this gives it’s functionality in publisher and consumer data exchange algorithms.
+Combination `release` and `acquire` is always used as pair, this gives its functionality in publisher and consumer data exchange algorithms.
 
-release doesn’t mean that data is instantly published for acquire to use. It is guaranteed that if Thread 2 acquire operation sees change published by Thread 1 release than all writes and read before release are visible in Thread 2.
+`release` doesn't mean that data is instantly published for `acquire` to use. It is guaranteed that if Thread 2 `acquire` operation sees change published by Thread 1 `release` than all writes and read before `release` are visible in Thread 2.
 
 ```c++
 std::atomic<bool> is_incremented(false);
@@ -384,17 +384,17 @@ void thread_2()
 }
 ```
 
-|  Time  | Current Thread | Operation ID |                              Comment                               |     |
-| :----: | :------------: | :----------: | :----------------------------------------------------------------: | --- |
-|   t0   |       1        |      A       |             x = 1, can not be reordered after release.             |     |
-| t0 + 1 |       1        |      B       |           store saves true in private core write buffer            |     |
-| t0 + 2 |       2        |      C       |                  load sees false; loop continues;                  |     |
-| t0 + 3 |       –        |      –       | store buffer drains; is_incremented == true is visible by Thread 2 |     |
-| t0 + 4 |       1        |      F       |                  load sees true; loop continues;                   |     |
+|  Time  | Current Thread | Operation ID |                              Comment                               |
+| :----: | :------------: | :----------: | :----------------------------------------------------------------: |
+|   t0   |       1        |      A       |             x = 1, can not be reordered after release.             |
+| t0 + 1 |       1        |      B       |           store saves true in private core write buffer            |
+| t0 + 2 |       2        |      C       |                  load sees false; loop continues;                  |
+| t0 + 3 |       –        |      –       | store buffer drains; is_incremented == true is visible by Thread 2 |
+| t0 + 4 |       2        |      C       |                     load sees true; loop ends;                     |
 
 ## What is relaxed memory ordering?
 
-With memory_order_relaxed only atomicity is guaranteed—neither ordering nor synchronisation.
+With `std::memory_order::relaxed` only atomicity is guaranteed—neither ordering nor synchronisation.
 
 ```c++
 std::atomic<bool> is_incremented(false);
@@ -417,13 +417,13 @@ void thread_2()
 
 Because the two operations in Thread 1 are relaxed and independent, the implementation may appear to execute B before A. One possible (perfectly legal) history is:
 
-|  Time  | Current Thread | Operation ID |                                    Comment                                     |     |
-| :----: | :------------: | :----------: | :----------------------------------------------------------------------------: | --- |
-|   t₀   |       2        |      C       |                        load sees false; loop continues.                        |     |
-| t0 + 1 |       1        |      B       |    is_increment set to true before x is incremented (A has been reordered).    |     |
-| t0 + 2 |       2        |      C       |                           load sees true; loop ends.                           |     |
-| t0 + 3 |    2 and 1     |   D and A    | ⚠ Data race: Thread 2 reads x while Thread 1 writes it -> undefined behaviour. |     |
-| t0 + 4 |       1        |      F       |                        load sees true; loop continues;                         |     |
+|  Time  | Current Thread | Operation ID |                                    Comment                                     |
+| :----: | :------------: | :----------: | :----------------------------------------------------------------------------: |
+|   t₀   |       2        |      C       |                        load sees false; loop continues.                        |
+| t0 + 1 |       1        |      B       |    is_increment set to true before x is incremented (A has been reordered).    |
+| t0 + 2 |       2        |      C       |                           load sees true; loop ends.                           |
+| t0 + 3 |    2 and 1     |   D and A    | ⚠ Data race: Thread 2 reads x while Thread 1 writes it -> undefined behaviour. |
+| t0 + 4 |       2        |      C       |                        load sees true; loop continues;                         |
 
 ⚠ This listing is intentionally racy.
 
@@ -455,14 +455,14 @@ something different can also happen.
 
 Scenario: A is executed before B, but incremented value x is stored in private store buffer, and is_incremented atomic value has been published to main memory so all other thread can see it. This implies that operations executed in Thread 1 in order A -> B are visible to other Thread 2 as executed in order B -> A.
 
-|  Time  | Current Thread | Operation ID |                      Comment                      |     |
-| :----: | :------------: | :----------: | :-----------------------------------------------: | --- |
-|   t₀   |       1        |      A       | x = 1, but value is still in core’s store buffer. |     |
-| t₀ + 1 |       1        |      B       |     is_incremented published to shared cache      |     |
-| t₀ + 2 |       2        |      C       |             load sees true; loop ends             |     |
-| t₀ + 3 |       2        |      D       |              Prints 0, old x value.               |     |
-| t₀ + 4 |       –        |      –       | Store buffer drains; x becomes globally visible.  |     |
-| t₀ + 5 |       2        |      E       |                     Prints 1.                     |     |
+|  Time  | Current Thread | Operation ID |                      Comment                      |
+| :----: | :------------: | :----------: | :-----------------------------------------------: |
+|   t₀   |       1        |      A       | x = 1, but value is still in core's store buffer. |
+| t₀ + 1 |       1        |      B       |     is_incremented published to shared cache      |
+| t₀ + 2 |       2        |      C       |             load sees true; loop ends             |
+| t₀ + 3 |       2        |      D       |              Prints 0, old x value.               |
+| t₀ + 4 |       –        |      –       | Store buffer drains; x becomes globally visible.  |
+| t₀ + 5 |       2        |      E       |                     Prints 1.                     |
 
 ⚠ This listing is intentionally racy.
 
@@ -470,10 +470,10 @@ Again, the behaviour is legal because neither thread imposed ordering between th
 
 ### Correct usage of relaxed memory ordering
 
-relaxed memory order is the right choice when you need atomicity but no cross-thread ordering at all.
+`relaxed` memory order is the right choice when you need atomicity but no cross-thread ordering at all.
 Typical patterns include:
 
-* Statistical counters – e.g. events_total.fetch_add(1, std::memory_order_relaxed); where the exact order of increments is irrelevant.
+* Statistical counters – e.g. `events_total.fetch_add(1, std::memory_order_relaxed)`; where the exact order of increments is irrelevant.
 * Non-blocking identifiers – generating unique IDs or ticket numbers.
 
 Never use `relaxed` to signal that data at other addresses is ready; readers might see the flag and still observe stale data due to re-ordering or store buffering.
