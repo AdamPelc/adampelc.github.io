@@ -1,43 +1,59 @@
-# Chirpy Starter
+# C++ Alchemy
 
-[![Gem Version](https://img.shields.io/gem/v/jekyll-theme-chirpy)][gem]&nbsp;
-[![GitHub license](https://img.shields.io/github/license/cotes2020/chirpy-starter.svg?color=blue)][mit]
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Fadampelc.github.io)](https://adampelc.github.io)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-green)](https://adampelc.github.io)
 
-When installing the [**Chirpy**][chirpy] theme through [RubyGems.org][gem], Jekyll can only read files in the folders
-`_data`, `_layouts`, `_includes`, `_sass` and `assets`, as well as a small part of options of the `_config.yml` file
-from the theme's gem. If you have ever installed this theme gem, you can use the command
-`bundle info --path jekyll-theme-chirpy` to locate these files.
+A technical blog focusing on C++ programming, performance optimization, and algorithms by Adam Pelc.
 
-The Jekyll team claims that this is to leave the ball in the user’s court, but this also results in users not being
-able to enjoy the out-of-the-box experience when using feature-rich themes.
+## About
 
-To fully use all the features of **Chirpy**, you need to copy the other critical files from the theme's gem to your
-Jekyll site. The following is a list of targets:
+This blog explores the deeper aspects of C++ programming, with particular emphasis on:
 
-```shell
-.
-├── _config.yml
-├── _plugins
-├── _tabs
-└── index.html
+- **Concurrency & Memory Models** - Understanding memory ordering, atomics, and thread synchronization
+- **Performance Engineering** - Lock-free data structures, optimization techniques, and benchmarking
+- **System Programming** - CPU governors, hardware interaction, and low-level optimizations
+- **Algorithms & Data Structures** - Efficient implementations and practical analysis
+
+## Featured Articles
+
+- **[Memory Ordering in C++ Concurrency](/_posts/2025-04-26-memory-order.md)** - Deep dive into C++20 memory ordering semantics
+- **[SPSC Queue Implementation](/_posts/2025-08-06-spsc_queue.md)** - Single Producer Single Consumer queue with multiple approaches
+- **[CPU Frequency Scaling Governors](/_posts/2025-04-16-frequency_scaling_governors.md)** - Linux governor comparison and performance analysis
+
+## Built With
+
+- [Jekyll](https://jekyllrb.com/) - Static site generator
+- [Chirpy Theme](https://github.com/cotes2020/jekyll-theme-chirpy) - Clean, responsive Jekyll theme
+- [GitHub Pages](https://pages.github.com/) - Hosting and deployment
+
+## Local Development
+
+```bash
+# Clone the repository
+git clone https://github.com/AdamPelc/adampelc.github.io.git
+cd adampelc.github.io
+
+# Install dependencies
+bundle install
+
+# Serve locally
+bundle exec jekyll serve
+
+# Visit http://localhost:4000
 ```
-
-To save you time, and also in case you lose some files while copying, we extract those files/configurations of the
-latest version of the **Chirpy** theme and the [CD][CD] workflow to here, so that you can start writing in minutes.
-
-## Usage
-
-Check out the [theme's docs](https://github.com/cotes2020/jekyll-theme-chirpy/wiki).
 
 ## Contributing
 
-This repository is automatically updated with new releases from the theme repository. If you encounter any issues or want to contribute to its improvement, please visit the [theme repository][chirpy] to provide feedback.
+Found a technical error or have suggestions? Feel free to:
+
+- Open an issue for discussion
+- Submit a pull request with corrections
+- Share feedback on the content
 
 ## License
 
-This work is published under [MIT][mit] License.
+Content is available under [MIT License](LICENSE).
 
-[gem]: https://rubygems.org/gems/jekyll-theme-chirpy
-[chirpy]: https://github.com/cotes2020/jekyll-theme-chirpy/
-[CD]: https://en.wikipedia.org/wiki/Continuous_deployment
-[mit]: https://github.com/cotes2020/chirpy-starter/blob/master/LICENSE
+---
+
+*Exploring the alchemy of transforming complex C++ concepts into clear, practical knowledge.*
