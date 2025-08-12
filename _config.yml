@@ -14,16 +14,16 @@ timezone: Europe/Warsaw
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
 # ↓ --------------------------
 
-title: CPP-Alchemy # the main title
+title: C++ Alchemy # the main title
 
-tagline: Personal blog on topics related to C++, performance and algorithms. # it will display as the subtitle
+tagline: Notes on C++, performance, and algorithms by Adam Pelc. # it will display as the subtitle
 
 description: >- # used by seo meta and the atom feed
-  Personal blog exploring C++ programming, performance optimization, algorithms, and low-level systems programming techniques.
+  A personal blog on C++, performance optimization, algorithms, and low-level systems programming.
 
 # Fill in the protocol & hostname for your site.
 # E.g. 'https://username.github.io', note that it does not end with a '/'.
-url: https://adampelc.github.io
+url: https://cpp-alchemy.com
 
 github:
   username: AdamPelc # change to your GitHub username
@@ -97,7 +97,7 @@ theme_mode: # [light | dark]
 cdn:
 
 # the avatar on sidebar, support local or CORS resources
-avatar: /assets/cropped-programming_alchemy-removebg-preview.png
+avatar: /assets/img/cropped-programming_alchemy-removebg-preview.png
 
 # The URL of the site-wide social preview image used in SEO `og:image` meta tag.
 # It can be overridden by a customized `page.image` in front matter.
